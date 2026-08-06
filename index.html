@@ -1,0 +1,693 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HMAT 인성검사 연습 답안지</title>
+<style>
+  :root{
+    --paper:#E9ECE6;
+    --card:#F8F9F6;
+    --ink:#16181A;
+    --ink2:#5D6459;
+    --ink3:#8C9388;
+    --rule:#C3C9BE;
+    --mark:#23407A;
+    --mark-soft:#DCE3F0;
+    --stamp:#A8321E;
+    --good:#2C6A4E;
+    --mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+            "Noto Sans KR", "Malgun Gothic", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px 96px}
+
+  /* ---------- 답안지 헤더 ---------- */
+  .sheet-head{
+    border-bottom:2px solid var(--ink);
+    padding:26px 0 12px;
+    margin-bottom:26px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .sheet-title{font-size:13px;letter-spacing:.24em;font-family:var(--mono);color:var(--ink2);text-transform:uppercase}
+  .sheet-name{font-size:29px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+  .sheet-meta{font-family:var(--mono);font-size:12px;color:var(--ink2);text-align:right;line-height:1.9}
+
+  /* ---------- 상단 고정 상태바 ---------- */
+  .statusbar{
+    position:sticky;top:0;z-index:50;
+    background:var(--paper);
+    border-bottom:1px solid var(--rule);
+    margin:0 -20px 22px;padding:10px 20px 8px;
+  }
+  .status-row{max-width:820px;margin:0 auto;display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
+  .status-row b{color:var(--ink);font-weight:700}
+  .clock{font-size:19px;font-weight:700;letter-spacing:.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .clock.warn{color:var(--stamp)}
+  .track{flex:1;height:4px;background:var(--rule);position:relative;overflow:hidden}
+  .track i{position:absolute;inset:0 auto 0 0;background:var(--mark);width:0;transition:width .3s ease}
+
+  /* ---------- 카드 ---------- */
+  .card{
+    background:var(--card);
+    border:1px solid var(--rule);
+    padding:26px 26px 22px;
+    margin-bottom:18px;
+  }
+  h2{font-size:20px;margin:0 0 6px;letter-spacing:-.01em}
+  h3{font-size:14px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin:0 0 14px;font-weight:600}
+  p{margin:0 0 12px}
+  .lead{color:var(--ink2);font-size:15px}
+  .fine{font-size:13px;color:var(--ink3);line-height:1.75}
+  ul.notes{margin:0;padding-left:18px;color:var(--ink2);font-size:14.5px}
+  ul.notes li{margin-bottom:5px}
+
+  /* ---------- 버튼 ---------- */
+  button{font-family:inherit;font-size:15px;cursor:pointer}
+  .btn{
+    background:var(--ink);color:var(--paper);border:none;
+    padding:14px 30px;font-weight:700;letter-spacing:.01em;
+  }
+  .btn:hover{background:var(--mark)}
+  .btn:disabled{background:var(--rule);color:#fff;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--ink);padding:11px 22px;font-weight:600}
+  .btn-ghost:hover{border-color:var(--mark);color:var(--mark)}
+  :focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+
+  /* ---------- 선택 칩 ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+  .chip{
+    border:1px solid var(--rule);background:#fff;padding:9px 15px;
+    font-size:14px;color:var(--ink2);
+  }
+  .chip[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:600}
+
+  /* ---------- 문항 ---------- */
+  .qnum{
+    font-family:var(--mono);font-size:12px;color:var(--ink3);
+    letter-spacing:.1em;margin-bottom:3px;
+  }
+  .qtext{font-size:16.5px;line-height:1.5;margin-bottom:11px}
+
+  .scale{display:flex;align-items:center;gap:0;justify-content:space-between;max-width:520px}
+  .bub{
+    width:34px;height:34px;border-radius:50%;
+    border:1.6px solid var(--rule);background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:12px;color:var(--ink3);
+    padding:0;transition:background .12s ease, border-color .12s ease;
+  }
+  .bub:hover{border-color:var(--mark)}
+  .bub[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff}
+  .scale-legend{
+    display:flex;justify-content:space-between;max-width:520px;
+    font-family:var(--mono);font-size:10.5px;color:var(--ink3);
+    letter-spacing:.06em;margin-top:5px;
+  }
+  .qrow{padding:16px 0;border-bottom:1px dashed var(--rule)}
+  .qrow:last-of-type{border-bottom:none}
+
+  /* Part I 강제선택 */
+  .ml-head{display:grid;grid-template-columns:1fr 62px 62px;gap:8px;align-items:end;
+    font-family:var(--mono);font-size:11px;color:var(--ink3);letter-spacing:.08em;
+    border-bottom:1px solid var(--ink);padding-bottom:6px;margin:20px 0 2px}
+  .ml-row{display:grid;grid-template-columns:1fr 62px 62px;gap:8px;align-items:center;
+    padding:11px 0;border-bottom:1px dotted var(--rule);font-size:14.5px}
+  .ml-row span{padding-right:8px}
+  .ml-btn{width:100%;border:1.4px solid var(--rule);background:#fff;padding:7px 0;
+    font-family:var(--mono);font-size:12px;color:var(--ink3)}
+  .ml-btn[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff}
+  .ml-btn.far[aria-pressed="true"]{background:var(--stamp);border-color:var(--stamp)}
+
+  .navbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px}
+  .hint{font-size:13px;color:var(--ink3);font-family:var(--mono)}
+  .hint.err{color:var(--stamp)}
+
+  /* ---------- 리포트 ---------- */
+  .stamp{
+    display:inline-block;border:2.5px solid var(--stamp);color:var(--stamp);
+    font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:.14em;
+    padding:9px 16px;transform:rotate(-3.5deg);margin-bottom:18px;
+  }
+  .bar-row{display:grid;grid-template-columns:120px 1fr 46px;gap:12px;align-items:center;margin-bottom:9px;font-size:14px}
+  .bar{height:16px;background:var(--mark-soft);position:relative}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--mark);width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .bar em{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--ink3);left:50%}
+  .bar-val{font-family:var(--mono);font-size:13px;text-align:right;color:var(--ink2)}
+
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:4px}
+  .metric{border:1px solid var(--rule);background:#fff;padding:14px}
+  .metric .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink3);text-transform:uppercase}
+  .metric .v{font-size:27px;font-weight:800;letter-spacing:-.02em;margin:3px 0 1px;font-variant-numeric:tabular-nums}
+  .metric .d{font-size:12.5px;color:var(--ink2);line-height:1.5}
+  .v.ok{color:var(--good)} .v.mid{color:#9A6B10} .v.bad{color:var(--stamp)}
+
+  .pairitem{border-left:3px solid var(--stamp);padding:9px 0 9px 13px;margin-bottom:12px;font-size:14.5px}
+  .pairitem .pq{color:var(--ink2);margin-bottom:2px}
+  .pairitem .pa{font-family:var(--mono);font-size:12px;color:var(--stamp)}
+  .qa{border-left:3px solid var(--mark);padding:9px 0 9px 13px;margin-bottom:12px;font-size:14.5px}
+  .qa .why{font-size:13px;color:var(--ink2);margin-top:3px}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--rule)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase;font-weight:600}
+  td.num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+
+  .hist{display:flex;align-items:flex-end;gap:6px;height:88px;margin-top:10px}
+  .hist div{flex:1;background:var(--mark);position:relative;min-height:2px}
+  .hist div u{position:absolute;top:-16px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--ink2);text-decoration:none}
+  .hist-x{display:flex;gap:6px;margin-top:5px}
+  .hist-x span{flex:1;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--ink3)}
+
+  @media (max-width:640px){
+    .wrap{padding:0 14px 80px}
+    .sheet-name{font-size:23px}
+    .bub{width:30px;height:30px}
+    .bar-row{grid-template-columns:88px 1fr 40px;font-size:13px}
+    .ml-head,.ml-row{grid-template-columns:1fr 52px 52px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <div id="bar" class="statusbar" hidden>
+    <div class="status-row">
+      <span class="clock" id="clock">00:00</span>
+      <span id="partlabel"><b>-</b></span>
+      <div class="track"><i id="track"></i></div>
+      <span id="counter">0 / 0</span>
+    </div>
+  </div>
+
+  <header class="sheet-head">
+    <div>
+      <div class="sheet-title">Practice Answer Sheet</div>
+      <div class="sheet-name">HMAT 인성검사 연습</div>
+    </div>
+    <div class="sheet-meta">
+      PART I · 7점 척도 + 강제선택<br>
+      PART II · 4점 척도 · 되돌아가기 불가
+    </div>
+  </header>
+
+  <main id="app"></main>
+</div>
+
+<script>
+/* ===================== 문항 은행 ===================== */
+const TRAIT = {
+  RES:{name:"성실·책임", desc:"계획을 세우고 마감을 지키며 세부를 관리하는 성향"},
+  SOC:{name:"대인·외향", desc:"사람들과 접촉하며 에너지를 얻고 먼저 다가서는 성향"},
+  CHA:{name:"도전·주도", desc:"새로운 방식과 높은 목표를 스스로 잡아 움직이는 성향"},
+  STA:{name:"정서안정", desc:"압박과 비판 상황에서 평정심을 유지하는 성향"},
+  INT:{name:"규범·정직", desc:"원칙과 절차를 지키고 잘못을 드러내는 성향"},
+  COL:{name:"협업·배려", desc:"팀 전체를 우선하고 의견을 조율하는 성향"},
+  ANA:{name:"분석·신중", desc:"근거와 데이터를 확인한 뒤 결론을 내리는 성향"}
+};
+
+// Part I : 3문장 세트 (서로 다른 특성으로 구성 → 강제선택이 의미를 가짐)
+const SETS = [
+ [["계획을 세우면 세부 일정까지 적어둔다","RES",1],["처음 만난 사람과도 먼저 말을 건넨다","SOC",1],["남들이 시도하지 않은 방식을 먼저 제안한다","CHA",1]],
+ [["예상치 못한 문제가 생겨도 평정심을 유지한다","STA",1],["팀원의 표정 변화를 잘 알아차린다","COL",1],["결정하기 전 근거 자료를 여러 번 확인한다","ANA",1]],
+ [["사소한 규정이라도 지키는 편이다","INT",1],["모임에서 분위기를 이끄는 역할을 맡는다","SOC",1],["맡은 일은 마감 전에 끝내둔다","RES",1]],
+ [["안정된 방식보다 새로운 방식에 끌린다","CHA",1],["숫자로 설명되지 않으면 납득이 잘 안 된다","ANA",1],["비판을 들어도 오래 담아두지 않는다","STA",1]],
+ [["내 성과보다 팀 전체 성과를 먼저 본다","COL",1],["반복적인 점검 작업도 지루해하지 않는다","RES",1],["여러 사람 앞에서 발표하는 것이 편하다","SOC",1]],
+ [["문제가 생기면 원인부터 나눠서 살펴본다","ANA",1],["실패 가능성이 있어도 해보는 쪽을 택한다","CHA",1],["손해를 보더라도 원칙을 지킨다","INT",1]],
+ [["압박이 심한 상황에서 오히려 집중이 잘 된다","STA",1],["갈등이 생기면 중재하는 편이다","COL",1],["일정표 없이 일하면 불안하다","RES",1]],
+ [["혼자 있는 시간보다 사람들과 있는 시간이 편하다","SOC",1],["자료의 예외 사례를 먼저 찾아본다","ANA",1],["목표는 높게 잡아야 한다고 생각한다","CHA",1]],
+ [["잘못을 저질렀을 때 내가 먼저 밝힌다","INT",1],["결과가 나올 때까지 초조해하지 않는다","STA",1],["상대의 입장을 끝까지 들어본다","COL",1]],
+ [["정리되지 않은 책상은 참기 어렵다","RES",1],["낯선 모임에도 부담 없이 참석한다","SOC",1],["직관보다 데이터를 신뢰한다","ANA",1]],
+ [["익숙한 업무가 반복되면 답답해진다","CHA",1],["내 의견을 접고 팀 결정을 따른 적이 많다","COL",1],["남들이 다 하는 편법도 쓰지 않는다","INT",1]],
+ [["감정 기복이 적다는 말을 듣는다","STA",1],["세운 계획은 웬만하면 끝까지 지킨다","RES",1],["처음 보는 사람과 식사하는 자리가 즐겁다","SOC",1]],
+ [["결론보다 과정의 논리를 중요하게 본다","ANA",1],["남보다 먼저 나서서 일을 벌인다","CHA",1],["실수했을 때 빠르게 털어낸다","STA",1]],
+ [["동료가 힘들어 보이면 내 일을 미뤄서라도 돕는다","COL",1],["규정에 어긋나면 상사의 지시라도 이의를 제기한다","INT",1],["마감이 다가와야 집중이 된다","RES",-1]],
+ [["새로운 사람을 소개받는 자리가 기대된다","SOC",1],["애매한 정보로 결론 내리는 것을 싫어한다","ANA",1],["전례가 없는 일을 맡는 것이 재미있다","CHA",1]],
+ [["걱정 때문에 잠을 설치는 일이 드물다","STA",1],["팀 분위기를 살피는 데 신경을 많이 쓴다","COL",1],["작은 약속도 반드시 지킨다","INT",1]],
+ [["여러 일이 겹쳐도 우선순위를 정해 처리한다","RES",1],["조용한 환경에서 일할 때 능률이 오른다","SOC",-1],["개선점이 보이면 바로 건의한다","CHA",1]],
+ [["남의 주장에서 빠진 근거를 잘 발견한다","ANA",1],["예민하다는 말을 들은 적이 있다","STA",-1],["내 공을 동료에게 돌린 적이 있다","COL",1]],
+ [["규칙이 비효율적이면 어기기도 한다","INT",-1],["기록을 남기는 습관이 있다","RES",1],["사람이 많은 자리에서 에너지를 얻는다","SOC",1]],
+ [["위험이 큰 선택은 피하는 편이다","CHA",-1],["결정 전에 대안을 세 개 이상 만들어본다","ANA",1],["의견이 갈리면 조율에 먼저 나선다","COL",1]],
+ [["화가 나면 표정에 그대로 드러난다","STA",-1],["이익이 되더라도 규정 밖의 방법은 쓰지 않는다","INT",1],["발표보다 자료 준비가 편하다","SOC",-1]],
+ [["완벽하지 않으면 제출하지 못한다","RES",1],["새로운 도구가 나오면 먼저 써본다","CHA",1],["혼자 처리하는 편이 마음 편하다","COL",-1]],
+ [["감으로 판단해도 잘 맞는 편이다","ANA",-1],["어려운 상황일수록 차분해진다","STA",1],["실수를 감추기보다 보고한다","INT",1]],
+ [["여러 사람과 어울리는 것이 피곤할 때가 많다","SOC",-1],["시작한 일은 끝을 봐야 한다","RES",1],["안정적인 조직이 나와 잘 맞는다","CHA",-1]]
+];
+
+// Part II : [문장, 특성, 방향, 일관성쌍ID] — sd = 사회적 바람직성(신뢰도 함정) 문항
+const ITEMS = [
+ ["해야 할 일을 미루지 않고 바로 시작한다","RES",1,"p1"],
+ ["사람이 많은 자리에서 쉽게 말을 건넨다","SOC",1,"p2"],
+ ["규정은 예외 없이 지켜야 한다고 생각한다","INT",1,"p3"],
+ ["화가 나도 겉으로 드러내지 않는다","STA",1,"p4"],
+ ["팀 전체의 성과가 내 개인 성과보다 중요하다","COL",1,"p5"],
+ ["새로운 방식을 시도하는 과정 자체가 즐겁다","CHA",1,"p6"],
+ ["결정하기 전에 근거 자료를 충분히 확인한다","ANA",1,"p7"],
+ ["실수를 하면 곧바로 알리는 편이다","INT",1,"p8"],
+ ["여러 사람 앞에서 말하는 것이 편하다","SOC",1,"p9"],
+ ["압박이 큰 상황에서도 평소 실력이 나온다","STA",1,"p10"],
+ ["일을 미루다 마감 직전에 몰아서 한다","RES",-1,"p1"],
+ ["낯선 사람과 대화하는 자리가 부담스럽다","SOC",-1,"p2"],
+ ["상황에 따라 규정은 융통성 있게 적용해도 된다","INT",-1,"p3"],
+ ["기분이 얼굴에 그대로 드러난다","STA",-1,"p4"],
+ ["평가는 개인 기여도에 따라 명확히 나뉘어야 한다","COL",-1,"p5"],
+ ["검증된 방식대로 하는 것이 마음 편하다","CHA",-1,"p6"],
+ ["분석에 시간을 쓰기보다 빠르게 결정하는 편이 낫다","ANA",-1,"p7"],
+ ["작은 실수는 혼자 해결하고 넘어간다","INT",-1,"p8"],
+ ["발표를 앞두면 긴장이 심해진다","SOC",-1,"p9"],
+ ["긴장하면 평소보다 실수가 늘어난다","STA",-1,"p10"],
+ ["맡은 일은 마감보다 앞당겨 끝낸다","RES",1],
+ ["체크리스트를 만들어 일을 관리한다","RES",1],
+ ["마무리가 꼼꼼하다는 말을 듣는다","RES",1],
+ ["세부 사항을 놓쳐 곤란했던 적이 있다","RES",-1],
+ ["하던 일을 끝내지 못하고 다른 일로 넘어갈 때가 있다","RES",-1],
+ ["약속 시간보다 미리 도착한다","RES",1],
+ ["처음 보는 사람과도 금방 친해진다","SOC",1],
+ ["모임에서 대화를 이끄는 역할을 맡는다","SOC",1],
+ ["사람들과 오래 있으면 기운이 빠진다","SOC",-1],
+ ["혼자 일할 때 능률이 더 오른다","SOC",-1],
+ ["연락을 먼저 하는 편이다","SOC",1],
+ ["전례가 없는 일을 맡는 것이 흥미롭다","CHA",1],
+ ["목표는 달성하기 어려울 만큼 높게 잡는다","CHA",1],
+ ["개선할 점이 보이면 바로 제안한다","CHA",1],
+ ["안정적인 환경에서 일하는 것이 좋다","CHA",-1],
+ ["위험이 따르는 선택은 피한다","CHA",-1],
+ ["익숙한 일이 반복되면 답답하다","CHA",1],
+ ["문제가 생기면 원인부터 나눠서 살펴본다","ANA",1],
+ ["숫자로 확인되지 않으면 납득이 어렵다","ANA",1],
+ ["결정 전에 대안을 여러 개 만들어본다","ANA",1],
+ ["직감으로 판단해도 대체로 맞는 편이다","ANA",-1],
+ ["복잡한 자료를 오래 들여다보는 것이 지친다","ANA",-1],
+ ["남의 주장에서 빠진 근거를 잘 찾아낸다","ANA",1],
+ ["예상치 못한 일이 생겨도 당황하지 않는다","STA",1],
+ ["결과가 나올 때까지 초조해하지 않는다","STA",1],
+ ["비판을 들으면 오래 마음에 남는다","STA",-1],
+ ["걱정 때문에 잠을 설치는 일이 있다","STA",-1],
+ ["실수한 일을 자주 곱씹는다","STA",-1],
+ ["예민하다는 말을 들은 적이 있다","STA",-1],
+ ["동료가 힘들어 보이면 내 일을 미뤄서라도 돕는다","COL",1],
+ ["의견이 갈리면 조율에 먼저 나선다","COL",1],
+ ["상대의 입장을 끝까지 들어본다","COL",1],
+ ["내 방식대로 처리하는 편이 마음 편하다","COL",-1],
+ ["팀 회의보다 혼자 결론 내리는 것이 빠르다","COL",-1],
+ ["성과의 공을 동료에게 돌린 적이 있다","COL",1],
+ ["손해를 보더라도 원칙을 지킨다","INT",1],
+ ["작은 약속도 반드시 지킨다","INT",1],
+ ["비효율적인 규칙은 어기기도 한다","INT",-1],
+ ["남들이 다 하는 편법이라면 나도 할 수 있다","INT",-1],
+ ["상사의 지시라도 규정에 어긋나면 이의를 제기한다","INT",1],
+ ["지금까지 거짓말을 한 적이 한 번도 없다","SD",1],
+ ["누군가를 미워해 본 적이 없다","SD",1],
+ ["약속에 늦은 적이 단 한 번도 없다","SD",1],
+ ["화를 낸 적이 한 번도 없다","SD",1],
+ ["다른 사람을 질투해 본 적이 없다","SD",1],
+ ["규칙을 어겨본 적이 전혀 없다","SD",1],
+ ["맡은 일에서 실패해 본 적이 없다","SD",1],
+ ["남의 험담을 해본 적이 없다","SD",1],
+ ["계획이 틀어지면 다시 세우는 데 시간이 걸린다","STA",-1],
+ ["반복적인 점검 작업도 지루해하지 않는다","RES",1],
+ ["새로운 도구가 나오면 먼저 써본다","CHA",1],
+ ["근거가 부족한 결론에는 동의하지 않는다","ANA",1],
+ ["팀 분위기를 살피는 데 신경을 많이 쓴다","COL",1],
+ ["정해진 절차를 건너뛰면 불안하다","INT",1],
+ ["여러 일이 겹쳐도 우선순위를 정해 처리한다","RES",1],
+ ["낯선 자리에서도 먼저 자기소개를 한다","SOC",1],
+ ["실패해도 다시 시도하는 편이다","CHA",1],
+ ["감정보다 사실을 기준으로 판단한다","ANA",1],
+ ["어려운 상황일수록 차분해진다","STA",1],
+ ["다른 사람의 부탁을 거절하기 어렵다","COL",1],
+ ["결과가 나쁘면 내 책임부터 따진다","RES",1],
+ ["일이 잘못되면 원인을 밖에서 먼저 찾는다","INT",-1],
+ ["기록을 남기는 습관이 있다","RES",1],
+ ["모르는 것을 바로 묻는 편이다","SOC",1],
+ ["계획 없이 움직이면 불안하다","RES",1],
+ ["혼자 결정하는 것보다 상의하는 편이 낫다","COL",1],
+ ["규정 밖의 방법으로 이익을 얻는 것은 옳지 않다","INT",1],
+ ["상황이 급해도 절차를 지킨다","INT",1],
+ ["새로운 환경에 빨리 적응한다","CHA",1],
+ ["논쟁이 생기면 감정이 앞선다","STA",-1]
+];
+
+/* ===================== 상태 ===================== */
+const app = document.getElementById('app');
+const bar = document.getElementById('bar');
+let S = null;
+
+function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[b[i],b[j]]=[b[j],b[i]];}return b;}
+const norm7 = (v,d)=>{const x=(v-1)/6*100;return d===1?x:100-x;};
+const norm4 = (v,d)=>{const x=(v-1)/3*100;return d===1?x:100-x;};
+const mmss = s=>String(Math.floor(s/60)).padStart(2,'0')+":"+String(s%60).padStart(2,'0');
+
+/* ===================== 시작 화면 ===================== */
+function intro(){
+  bar.hidden = true;
+  app.innerHTML = `
+  <div class="card">
+    <h3>응시 안내</h3>
+    <p class="lead">실제 HMAT 인성검사는 문항 수가 많고 되돌아갈 수 없다는 점이 가장 큰 부담입니다. 이 연습은 그 조건을 그대로 재현하고, 끝나면 <b>응답 일관성·신뢰도 지표</b>를 답안지 형식으로 돌려줍니다.</p>
+    <ul class="notes">
+      <li><b>PART I</b> — 문장 3개를 각각 1~7로 평정한 뒤, 그중 나와 <b>가장 가까운 것 1개</b>와 <b>가장 먼 것 1개</b>를 고릅니다.</li>
+      <li><b>PART II</b> — 문장 하나에 4단계로 응답합니다. <b>다음으로 넘어가면 되돌아올 수 없습니다.</b></li>
+      <li>제한 시간이 끝나면 그 시점까지의 응답으로 자동 채점됩니다.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>1 · 응시 분량</h3>
+    <div class="chips" id="mode">
+      <button class="chip" data-v="full" aria-pressed="true">실전형 · 168문항 · 55분</button>
+      <button class="chip" data-v="half" aria-pressed="false">중간 · 90문항 · 30분</button>
+      <button class="chip" data-v="quick" aria-pressed="false">속성 · 54문항 · 15분</button>
+    </div>
+    <p class="fine">실제 시험은 두 검사를 합쳐 최대 110분입니다. 문항당 페이스는 실전형이 가장 가깝습니다.</p>
+  </div>
+
+  <div class="card">
+    <h3>2 · 자소서에서 강조한 역량</h3>
+    <p class="fine" style="margin-bottom:8px">최대 3개까지 고르세요. 검사 결과와 대조해서, 면접에서 <b>“자소서와 검사 결과가 다르다”</b>는 질문을 받을 위험이 있는 지점을 짚어줍니다.</p>
+    <div class="chips" id="claims">
+      ${Object.entries(TRAIT).map(([k,v])=>`<button class="chip" data-t="${k}" aria-pressed="false">${v.name}</button>`).join('')}
+    </div>
+  </div>
+
+  <div class="navbar">
+    <span class="hint">응답 중에는 자동 저장되지 않습니다. 한 번에 끝내세요.</span>
+    <button class="btn" id="start">검사 시작</button>
+  </div>`;
+
+  let mode='full';
+  app.querySelector('#mode').addEventListener('click',e=>{
+    const b=e.target.closest('.chip'); if(!b)return; mode=b.dataset.v;
+    app.querySelectorAll('#mode .chip').forEach(c=>c.setAttribute('aria-pressed', String(c===b)));
+  });
+  const claims=new Set();
+  app.querySelector('#claims').addEventListener('click',e=>{
+    const b=e.target.closest('.chip'); if(!b)return;
+    const t=b.dataset.t;
+    if(claims.has(t)) claims.delete(t);
+    else { if(claims.size>=3) return; claims.add(t); }
+    b.setAttribute('aria-pressed', String(claims.has(t)));
+  });
+  app.querySelector('#start').onclick=()=>begin(mode,[...claims]);
+}
+
+/* ===================== 검사 시작 ===================== */
+function begin(mode, claims){
+  const conf = {full:{s:24,i:96,t:55},half:{s:12,i:54,t:30},quick:{s:8,i:30,t:15}}[mode];
+  const sets = shuffle(SETS).slice(0,conf.s);
+  const pool = shuffle(ITEMS);
+  // 일관성 쌍은 반드시 함께 포함
+  const paired = pool.filter(x=>x[3]), rest = pool.filter(x=>!x[3]);
+  const items = shuffle(paired.concat(rest.slice(0, Math.max(0, conf.i - paired.length)))).slice(0, Math.max(conf.i, paired.length));
+
+  S = { mode, claims, sets, items, si:0, ii:0, p1:{}, p2:{},
+        phase:'p1', total:sets.length*3+items.length,
+        limit:conf.t*60, left:conf.t*60, t0:Date.now(), timer:null, times:[] , lastT:Date.now()};
+
+  bar.hidden=false;
+  S.timer=setInterval(()=>{
+    S.left--;
+    const c=document.getElementById('clock');
+    if(c){ c.textContent=mmss(Math.max(0,S.left)); c.classList.toggle('warn', S.left<180); }
+    if(S.left<=0){ clearInterval(S.timer); report(true); }
+  },1000);
+  renderP1();
+}
+
+function updateBar(done){
+  document.getElementById('clock').textContent=mmss(Math.max(0,S.left));
+  document.getElementById('partlabel').innerHTML = S.phase==='p1'?'<b>PART I</b>':'<b>PART II</b>';
+  document.getElementById('track').style.width = (done/S.total*100)+'%';
+  document.getElementById('counter').textContent = done+" / "+S.total;
+}
+
+/* ===================== PART I ===================== */
+function renderP1(){
+  const idx=S.si, set=S.sets[idx];
+  const a = S.p1[idx] || (S.p1[idx]={v:[null,null,null],near:null,far:null});
+  updateBar(idx*3);
+  window.scrollTo(0,0);
+
+  app.innerHTML=`
+  <div class="card">
+    <div class="qnum">PART I · SET ${String(idx+1).padStart(2,'0')} / ${String(S.sets.length).padStart(2,'0')}</div>
+    <h2 style="margin-bottom:14px">각 문장이 나와 얼마나 맞는지 표시하세요</h2>
+    ${set.map((q,i)=>`
+      <div class="qrow">
+        <div class="qtext">${q[0]}</div>
+        <div class="scale" data-i="${i}">
+          ${[1,2,3,4,5,6,7].map(n=>`<button class="bub" data-v="${n}" aria-pressed="${a.v[i]===n}">${n}</button>`).join('')}
+        </div>
+        <div class="scale-legend"><span>전혀 아니다</span><span>보통</span><span>매우 그렇다</span></div>
+      </div>`).join('')}
+
+    <div class="ml-head"><span>세 문장 중 하나씩만 고르세요</span><span>가깝다</span><span>멀다</span></div>
+    ${set.map((q,i)=>`
+      <div class="ml-row">
+        <span>${q[0]}</span>
+        <button class="ml-btn near" data-k="near" data-i="${i}" aria-pressed="${a.near===i}">가깝다</button>
+        <button class="ml-btn far" data-k="far" data-i="${i}" aria-pressed="${a.far===i}">멀다</button>
+      </div>`).join('')}
+
+    <div class="navbar">
+      <span class="hint" id="hint">7개 척도 3개 + 가깝다/멀다를 모두 표시해야 넘어갑니다</span>
+      <button class="btn" id="next">${idx===S.sets.length-1?'PART II로':'다음'}</button>
+    </div>
+  </div>`;
+
+  app.addEventListener('click',e=>{
+    const b=e.target.closest('.bub');
+    if(b){
+      const row=b.closest('.scale'), i=+row.dataset.i;
+      a.v[i]=+b.dataset.v;
+      row.querySelectorAll('.bub').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+      return;
+    }
+    const m=e.target.closest('.ml-btn');
+    if(m){
+      const k=m.dataset.k, i=+m.dataset.i;
+      if(a[k]===i) a[k]=null;
+      else { a[k]=i; if(k==='near'&&a.far===i)a.far=null; if(k==='far'&&a.near===i)a.near=null; }
+      app.querySelectorAll('.ml-btn').forEach(x=>{
+        x.setAttribute('aria-pressed', String(a[x.dataset.k]===+x.dataset.i));
+      });
+    }
+  });
+
+  document.getElementById('next').onclick=()=>{
+    const ok = a.v.every(x=>x!==null) && a.near!==null && a.far!==null;
+    const h=document.getElementById('hint');
+    if(!ok){ h.textContent='표시하지 않은 항목이 있습니다'; h.classList.add('err'); return; }
+    S.times.push((Date.now()-S.lastT)/3000); S.lastT=Date.now();
+    if(S.si===S.sets.length-1){ S.phase='p2'; renderP2(); } else { S.si++; renderP1(); }
+  };
+}
+
+/* ===================== PART II ===================== */
+const L4=["전혀 아니다","아니다","그렇다","매우 그렇다"];
+function renderP2(){
+  const i=S.ii, batch=S.items.slice(i,i+5);
+  const base=S.sets.length*3;
+  updateBar(base+i);
+  window.scrollTo(0,0);
+
+  app.innerHTML=`
+  <div class="card">
+    <div class="qnum">PART II · ${String(i+1).padStart(3,'0')}–${String(Math.min(i+5,S.items.length)).padStart(3,'0')} / ${S.items.length}</div>
+    <h2 style="margin-bottom:4px">문장이 나와 가까운지 표시하세요</h2>
+    <p class="fine" style="margin-bottom:6px">넘어가면 이 문항으로 돌아올 수 없습니다.</p>
+    ${batch.map((q,k)=>`
+      <div class="qrow">
+        <div class="qnum">${String(i+k+1).padStart(3,'0')}</div>
+        <div class="qtext">${q[0]}</div>
+        <div class="chips" data-k="${i+k}">
+          ${L4.map((l,n)=>`<button class="chip" data-v="${n+1}" aria-pressed="${S.p2[i+k]===n+1}">${l}</button>`).join('')}
+        </div>
+      </div>`).join('')}
+    <div class="navbar">
+      <span class="hint" id="hint">${S.items.length-i-batch.length}문항 남음</span>
+      <button class="btn" id="next">${i+5>=S.items.length?'제출하고 채점':'다음'}</button>
+    </div>
+  </div>`;
+
+  app.addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    const box=c.closest('.chips'), k=+box.dataset.k;
+    S.p2[k]=+c.dataset.v;
+    box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===c)));
+  });
+
+  document.getElementById('next').onclick=()=>{
+    const missing = batch.some((q,k)=>!S.p2[i+k]);
+    const h=document.getElementById('hint');
+    if(missing){ h.textContent='응답하지 않은 문항이 있습니다'; h.classList.add('err'); return; }
+    S.times.push((Date.now()-S.lastT)/batch.length/1000); S.lastT=Date.now();
+    if(i+5>=S.items.length){ clearInterval(S.timer); report(false); }
+    else { S.ii+=5; renderP2(); }
+  };
+}
+
+/* ===================== 채점 ===================== */
+function report(timedOut){
+  bar.hidden=true;
+  const acc={}, cnt={};
+  Object.keys(TRAIT).forEach(k=>{acc[k]=0;cnt[k]=0;});
+  const dist=[0,0,0,0,0,0,0];
+  let answered=0;
+
+  S.sets.forEach((set,si)=>{
+    const a=S.p1[si]; if(!a)return;
+    set.forEach((q,i)=>{
+      if(a.v[i]==null)return;
+      answered++; dist[a.v[i]-1]++;
+      acc[q[1]]+=norm7(a.v[i],q[2]); cnt[q[1]]++;
+    });
+  });
+  const sd=[];
+  S.items.forEach((q,i)=>{
+    const v=S.p2[i]; if(!v)return; answered++;
+    const n=norm4(v,q[2]);
+    if(q[1]==='SD') sd.push(n); else { acc[q[1]]+=n; cnt[q[1]]++; }
+  });
+
+  const prof=Object.keys(TRAIT).map(k=>({k,name:TRAIT[k].name,v: cnt[k]? Math.round(acc[k]/cnt[k]) : 50, n:cnt[k]}));
+  const sorted=prof.slice().sort((a,b)=>b.v-a.v);
+
+  // 일관성 쌍
+  const pairs={};
+  S.items.forEach((q,i)=>{ if(q[3]&&S.p2[i]) (pairs[q[3]]=pairs[q[3]]||[]).push({t:q[0],n:norm4(S.p2[i],q[2]),raw:S.p2[i],dir:q[2]}); });
+  const gaps=Object.values(pairs).filter(p=>p.length===2)
+    .map(p=>({d:Math.abs(p[0].n-p[1].n),a:p[0],b:p[1]})).sort((x,y)=>y.d-x.d);
+  const avgGap = gaps.length? gaps.reduce((s,g)=>s+g.d,0)/gaps.length : 0;
+  const consistency = Math.max(0,Math.min(100, Math.round(100 - avgGap*1.15)));
+
+  // 강제선택 vs 자기보고
+  const ips={}; Object.keys(TRAIT).forEach(k=>ips[k]=0);
+  S.sets.forEach((set,si)=>{ const a=S.p1[si]; if(!a)return;
+    if(a.near!=null) ips[set[a.near][1]] += set[a.near][2];
+    if(a.far!=null)  ips[set[a.far][1]]  -= set[a.far][2];
+  });
+  const ipsTop=Object.entries(ips).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+  const selfTop=sorted.slice(0,3).map(x=>x.k);
+  const overlap=ipsTop.filter(k=>selfTop.includes(k)).length;
+
+  const sdScore = sd.length? Math.round(sd.reduce((a,b)=>a+b,0)/sd.length) : 0;
+  const mid = answered? Math.round(dist[3]/dist.reduce((a,b)=>a+b,0)*100) : 0;
+  const ext = answered? Math.round((dist[0]+dist[6])/dist.reduce((a,b)=>a+b,0)*100) : 0;
+  const elapsed = Math.round((S.limit-Math.max(0,S.left)));
+  const perQ = answered? (elapsed/answered) : 0;
+
+  const grade=(v,good,mid_)=> v>=good?'ok': v>=mid_?'mid':'bad';
+
+  // 면접 예상 질문
+  const qa=[];
+  const hi=sorted[0], hi2=sorted[1], lo=sorted[sorted.length-1];
+  qa.push({q:`“${hi.name}” 성향이 뚜렷하게 나왔습니다. 그 성향이 팀에 부담이 됐던 상황이 있었나요?`,
+           w:`강점 특성은 반드시 그 이면을 묻습니다. 강점 → 부작용 → 조정한 방법 순으로 준비하세요.`});
+  qa.push({q:`“${lo.name}”은 상대적으로 낮게 나왔습니다. 이 부분이 필요한 업무를 맡으면 어떻게 하시겠습니까?`,
+           w:`낮은 특성은 부정하지 말고, 보완 장치(절차·도구·동료 협업)를 구체적으로 말하는 편이 안전합니다.`});
+  if(sdScore>=62) qa.push({q:`검사 응답이 전반적으로 이상적인 방향에 몰려 있습니다. 실제로 크게 실패했던 경험을 말해보세요.`,
+           w:`신뢰도 척도가 높으면 면접에서 실패 경험을 반드시 확인합니다. 솔직한 실패 사례 하나는 준비해두세요.`});
+  S.claims.forEach(k=>{
+    const p=prof.find(x=>x.k===k);
+    if(p && p.v<55) qa.push({q:`자소서에서는 ${TRAIT[k].name}을 강조했는데, 검사에서는 평균 수준으로 나왔습니다. 어떻게 설명하시겠습니까?`,
+           w:`자소서와 검사 결과가 어긋나는 지점은 실제로 자주 파고듭니다. 검사에서 이 특성 문항에 너무 겸손하게 답하지 않았는지 점검하세요.`});
+  });
+
+  const claimRows = S.claims.map(k=>{
+    const p=prof.find(x=>x.k===k);
+    const st = p.v>=65?['정합','ok']: p.v>=52?['보통','mid']:['불일치 위험','bad'];
+    return `<tr><td>${TRAIT[k].name}</td><td class="num">${p.v}</td><td><span class="v ${st[1]}" style="font-size:14px;font-weight:700">${st[0]}</span></td></tr>`;
+  }).join('');
+
+  app.innerHTML=`
+  <div class="card">
+    <div class="stamp">${timedOut?'시간 종료 · 부분 채점':'응시 완료'}</div>
+    <h2>응답 리포트</h2>
+    <p class="lead">응답 ${answered}문항 · 소요 ${mmss(elapsed)} · 문항당 평균 ${perQ.toFixed(1)}초</p>
+  </div>
+
+  <div class="card">
+    <h3>성향 프로파일</h3>
+    ${prof.map(p=>`
+      <div class="bar-row">
+        <span>${p.name}</span>
+        <div class="bar"><em></em><i style="width:${p.v}%"></i></div>
+        <span class="bar-val">${p.v}</span>
+      </div>`).join('')}
+    <p class="fine" style="margin-top:12px">점수의 높낮이 자체에는 좋고 나쁨이 없습니다. 지원 직무에서 요구하는 방향과 어긋나는 축이 있는지, 그리고 그 축을 자소서·면접에서 어떻게 설명할지가 실제 관건입니다.</p>
+  </div>
+
+  <div class="card">
+    <h3>신뢰도 지표</h3>
+    <div class="metrics">
+      <div class="metric"><div class="k">Consistency</div>
+        <div class="v ${grade(consistency,80,65)}">${consistency}</div>
+        <div class="d">같은 내용을 다르게 물은 ${gaps.length}쌍의 응답 일치도. 80 미만이면 실전에서 신뢰도 경고가 뜰 수 있는 수준입니다.</div></div>
+      <div class="metric"><div class="k">Impression</div>
+        <div class="v ${sdScore>=62?'bad':sdScore>=50?'mid':'ok'}">${sdScore}</div>
+        <div class="d">“한 번도 없다” 류 문항에 얼마나 동의했는지. 높을수록 자신을 이상적으로 포장한 것으로 읽힙니다.</div></div>
+      <div class="metric"><div class="k">Mid-point</div>
+        <div class="v ${mid<=25?'ok':mid<=40?'mid':'bad'}">${mid}%</div>
+        <div class="d">PART I에서 중앙값(4)을 고른 비율. 중앙에 몰리면 응답 자체의 변별력이 떨어집니다.</div></div>
+      <div class="metric"><div class="k">Extreme</div>
+        <div class="v ${ext>=15&&ext<=45?'ok':'mid'}">${ext}%</div>
+        <div class="d">1 또는 7을 고른 비율. 확실한 문항에서는 극단을 쓰는 편이 일관성 판정에 유리합니다.</div></div>
+      <div class="metric"><div class="k">Pace</div>
+        <div class="v ${perQ<2.2?'bad':perQ<=7?'ok':'mid'}">${perQ.toFixed(1)}s</div>
+        <div class="d">문항당 평균 응답 시간. 2초 미만은 무성의 응답으로, 10초 초과는 시간 부족으로 이어집니다.</div></div>
+      <div class="metric"><div class="k">Forced-choice</div>
+        <div class="v ${overlap>=2?'ok':overlap===1?'mid':'bad'}">${overlap}/3</div>
+        <div class="d">척도로 매긴 상위 특성과 “가깝다”로 고른 특성이 몇 개나 겹치는지. 어긋나면 실제 우선순위가 다른 것입니다.</div></div>
+    </div>
+  </div>
+
+  ${gaps.length?`
+  <div class="card">
+    <h3>엇갈린 응답 ${gaps.filter(g=>g.d>=34).length?`· ${gaps.filter(g=>g.d>=34).length}건`:''}</h3>
+    ${gaps.filter(g=>g.d>=34).length? gaps.filter(g=>g.d>=34).slice(0,6).map(g=>`
+      <div class="pairitem">
+        <div class="pq">“${g.a.t}” → ${L4[g.a.raw-1]}</div>
+        <div class="pq">“${g.b.t}” → ${L4[g.b.raw-1]}</div>
+        <div class="pa">차이 ${Math.round(g.d)}점 · 사실상 같은 내용을 반대로 답했습니다</div>
+      </div>`).join('')
+      : `<p class="lead">같은 내용을 다르게 물은 문항에서 모순이 발견되지 않았습니다. 실전에서도 이 페이스를 유지하세요.</p>`}
+  </div>`:''}
+
+  ${S.claims.length?`
+  <div class="card">
+    <h3>자소서 정합성</h3>
+    <table><thead><tr><th>강조한 역량</th><th style="text-align:right">검사 점수</th><th>판정</th></tr></thead>
+    <tbody>${claimRows}</tbody></table>
+    <p class="fine" style="margin-top:10px">불일치가 뜬 항목은 자소서를 고칠 문제가 아니라, 그 역량을 <b>어떤 행동으로 보여줬는지</b>를 면접에서 말할 수 있는지의 문제입니다.</p>
+  </div>`:''}
+
+  <div class="card">
+    <h3>예상 확인 질문</h3>
+    ${qa.map(x=>`<div class="qa"><div>${x.q}</div><div class="why">${x.w}</div></div>`).join('')}
+  </div>
+
+  <div class="card">
+    <h3>PART I 응답 분포</h3>
+    <div class="hist">${dist.map(d=>{const m=Math.max(...dist)||1;return `<div style="height:${Math.max(3,d/m*100)}%"><u>${d}</u></div>`}).join('')}</div>
+    <div class="hist-x">${[1,2,3,4,5,6,7].map(n=>`<span>${n}</span>`).join('')}</div>
+    <p class="fine" style="margin-top:14px">이상적인 모양은 완만한 M자입니다. 가운데 봉우리 하나만 높으면 “판단을 유보한 응답”으로 읽히고, 양 끝만 높으면 극단 응답 경향으로 잡힙니다.</p>
+  </div>
+
+  <div class="navbar">
+    <button class="btn-ghost" id="again">문항을 섞어 다시 응시</button>
+    <button class="btn" id="print">리포트 인쇄 / PDF 저장</button>
+  </div>`;
+
+  document.getElementById('again').onclick=intro;
+  document.getElementById('print').onclick=()=>window.print();
+}
+
+intro();
+</script>
