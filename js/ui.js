@@ -184,54 +184,34 @@ document.getElementById('fnext').onclick=()=>go(false);
 function report(){
   clearInterval(tick); foot.hidden=true;
 
-  const {tot,ansN,miss,hardN,mildN,pairs,stab,gapList,prof,shaky,spreadData,seq,
+  const {tot,ansN,miss,pairs,splitN,splitN2,stab,gapList,prof,shaky,heat1,heat2,seq,R1,R2,
          sdScore,atFail,atTotal,sdCount,mid,ext,dist,ipsHit,ipsTot,elapsed}=score(S);
   const d7=dist.reduce((a,b)=>a+b,0);
   const mm=s=>Math.floor(s/60)+'분 '+(s%60)+'초';
 
   // 조언
 
-  // 영역별 응답 산포도 — 흩어진 순으로 위에서부터
-  const top=spreadData.slice(0,14);
-  const W=560, ROW=22, PAD=132;
-  const spreadSvg=`
-  <svg viewBox="0 0 ${W+PAD+30} ${top.length*ROW+34}" style="width:100%;height:auto">
-    <line x1="${PAD}" y1="22" x2="${PAD}" y2="${top.length*ROW+26}" stroke="var(--rule)"/>
-    <line x1="${PAD+W}" y1="22" x2="${PAD+W}" y2="${top.length*ROW+26}" stroke="var(--rule)"/>
-    <text x="${PAD}" y="14" font-size="10" fill="var(--ink3)" font-family="var(--mono)">낮음</text>
-    <text x="${PAD+W}" y="14" font-size="10" fill="var(--ink3)" text-anchor="end" font-family="var(--mono)">높음</text>
-    ${top.map((d,i)=>{
-      const y=i*ROW+34;
-      const lo=Math.min(...d.points), hi=Math.max(...d.points);
-      const X=v=>PAD+v/100*W;
-      return `
-      <text x="${PAD-10}" y="${y+4}" font-size="11.5" fill="var(--ink2)" text-anchor="end">${d.name}</text>
-      <line x1="${X(lo)}" y1="${y}" x2="${X(hi)}" y2="${y}" stroke="${d.sd>=28?'var(--stamp)':'var(--rule)'}" stroke-width="1.5"/>
-      ${d.points.map(v=>`<circle cx="${X(v)}" cy="${y}" r="3.5" fill="${d.sd>=28?'var(--stamp)':'var(--mark)'}" fill-opacity="0.55"/>`).join('')}
-      <text x="${PAD+W+8}" y="${y+4}" font-size="10.5" fill="var(--ink3)" font-family="var(--mono)">${Math.round(d.sd)}</text>`;
-    }).join('')}
-  </svg>`;
-
-  // 모순이 검사 어디쯤에서 나왔는지
-  const marks=pairs.map(p=>({x:(p.a.idx+p.b.idx)/2/seq*100, hard:p.level==='명확'}));
-  const bins=Array.from({length:10},(_,i)=>marks.filter(m=>m.x>=i*10&&m.x<(i+1)*10).length);
-  const maxBin=Math.max(...bins,1);
-  const posSvg=`
-  <svg viewBox="0 0 620 118" style="width:100%;height:auto">
-    ${bins.map((b,i)=>`<rect x="${i*61+4}" y="${88-b/maxBin*72}" width="53" height="${Math.max(1,b/maxBin*72)}"
-      fill="var(--mark)" fill-opacity="0.18"/>`).join('')}
-    ${marks.map(m=>`<circle cx="${4+m.x/100*606}" cy="${52+(Math.random()-0.5)*44}" r="4"
-      fill="${m.hard?'var(--stamp)':'var(--mark)'}" fill-opacity="${m.hard?0.75:0.4}"/>`).join('')}
-    <line x1="4" y1="94" x2="610" y2="94" stroke="var(--rule)"/>
-    <text x="4" y="110" font-size="10.5" fill="var(--ink3)" font-family="var(--mono)">검사 시작</text>
-    <text x="307" y="110" font-size="10.5" fill="var(--ink3)" text-anchor="middle" font-family="var(--mono)">중반</text>
-    <text x="610" y="110" font-size="10.5" fill="var(--ink3)" text-anchor="end" font-family="var(--mono)">검사 끝</text>
-  </svg>`;
-  const firstHalf=marks.filter(m=>m.x<50).length, lateHalf=marks.length-firstHalf;
+  // 응답 분포 히트맵 — 축 6개를 기본으로 보여주고, 펼치면 영역 36개까지 내려간다
+  const cell=(c,mx,max)=>{
+    const o=c===0?0:0.18+c/mx*0.72;
+    return `<div class="hcell" style="background:rgba(35,64,122,${o.toFixed(2)})" title="${c}회"></div>`;
+  };
+  const heatTable=(data,max)=>{
+    const mx=Math.max(1,...data.flatMap(g=>[...g.counts,...g.rows.flatMap(r=>r.counts)]));
+    return `<div class="heat" style="--cols:${max}">
+      <div class="hhead"><span></span>${Array.from({length:max},(_,i)=>`<span>${i+1}</span>`).join('')}<span></span></div>
+      ${data.map(g=>`
+        <div class="hrow hax"><span class="hname">${g.name}</span>
+          ${g.counts.map(c=>cell(c,mx,max)).join('')}<span class="hn">${g.n}</span></div>
+        ${g.rows.map(r=>`<div class="hrow hsub"><span class="hname">${r.name}</span>
+          ${r.counts.map(c=>cell(c,mx,max)).join('')}<span class="hn">${r.n}</span></div>`).join('')}
+      `).join('')}
+    </div>`;
+  };
+  const heatI=heatTable(heat1,7), heatII=heatTable(heat2,4);
 
   const tips=[];
-  if(marks.length>=6&&lateHalf>=firstHalf*2) tips.push(`응답이 갈린 문항 ${marks.length}건 중 ${lateHalf}건이 후반부에 나왔습니다. 뒤로 갈수록 응답이 흔들린 구간이 있습니다.`);
-  else if(marks.length>=6&&firstHalf>=lateHalf*2) tips.push(`응답이 갈린 문항 ${marks.length}건 중 ${firstHalf}건이 전반부에 몰려 있습니다. 초반에 기준을 잡는 데 시간이 걸린 것으로 보입니다.`);
+
   if(mid!==null&&mid>35) tips.push(`검사 I에서 중앙값 4를 ${mid}% 골랐습니다. 중앙에 몰리면 문항 간 차이가 줄어 같은 개념을 물었을 때의 응답 폭이 좁아집니다.`);
   if(ext!==null&&ext<10) tips.push(`양 끝(1·7) 응답이 ${ext}%입니다. 확실한 문항에서도 중간값을 쓰면 응답의 방향이 흐려집니다.`);
   if(miss>0) tips.push(`${miss}문항이 미응답으로 남았습니다. 페이지당 제한 시간 안에 다 채우지 못한 구간이 있습니다.`);
@@ -250,15 +230,15 @@ function report(){
     <h3>이번 응답 요약</h3>
     <p class="lead" style="margin-bottom:14px">
       ${tot}문항 중 ${ansN}문항 응답 · 소요 ${mm(elapsed)}<br>
-      같은 개념을 다르게 물은 문항 조합에서 <b>명확한 차이 ${hardN}건, 경미한 차이 ${mildN}건</b>이 나왔습니다.
+      같은 개념을 다르게 물은 문항 조합에서 <b>응답이 갈린 경우가 ${pairs.length}건</b> 나왔습니다.
     </p>
     <div class="sum">
       <div class="su"><div class="k">응답 안정도</div><div class="v">${stab??'—'}</div>
         <div class="d">같은 개념 문항끼리 응답이 얼마나 모여 있는지</div></div>
-      <div class="su"><div class="k">명확한 차이</div><div class="v">${hardN}</div>
-        <div class="d">검사 I 4단계 이상, 검사 II 3단계 차이</div></div>
-      <div class="su"><div class="k">경미한 차이</div><div class="v">${mildN}</div>
-        <div class="d">검사 I 3단계, 검사 II 2단계 차이</div></div>
+      <div class="su"><div class="k">갈린 문항 · 검사 I</div><div class="v">${splitN}</div>
+        <div class="d">7점 척도에서 3단계 이상 벌어진 조합</div></div>
+      <div class="su"><div class="k">갈린 문항 · 검사 II</div><div class="v">${splitN2}</div>
+        <div class="d">4단계 응답에서 2단계 이상 벌어진 조합</div></div>
       <div class="su"><div class="k">미응답</div><div class="v">${miss}</div>
         <div class="d">전체 ${tot}문항 중</div></div>
       ${sdScore!==null?`<div class="su"><div class="k">과장 응답</div><div class="v">${sdScore}</div>
@@ -273,27 +253,28 @@ function report(){
   </div>
 
   <div class="card">
-    <h3>영역별 응답 산포</h3>
-    <p class="fine" style="margin-bottom:10px">같은 개념을 다르게 물은 문항들의 응답 위치입니다. 점이 모여 있을수록 그 영역에서 일관되게 답한 것이고, 넓게 퍼져 있을수록 문항에 따라 응답이 달라진 것입니다. 오른쪽 숫자는 흩어진 정도이며, 흩어짐이 큰 순으로 정렬했습니다.</p>
-    ${spreadSvg}
+    <h3>응답 분포</h3>
+    <p class="fine" style="margin-bottom:12px">가로는 응답값, 세로는 성향 영역입니다. 많이 고른 칸일수록 진하게 표시됩니다. 한 칸에 몰려 있으면 그 영역에서 일관되게 답한 것이고, 여러 칸에 퍼져 있으면 문항에 따라 응답이 달라진 것입니다.</p>
+    <div class="tabs">
+      <button class="tab" data-h="1" aria-pressed="true">검사 I</button>
+      <button class="tab" data-h="2" aria-pressed="false">검사 II</button>
+      <button class="tab expand" id="hx" aria-pressed="false">자세히 보기</button>
+    </div>
+    <div id="heat1">${heatI}</div>
+    <div id="heat2" hidden>${heatII}</div>
   </div>
-
-  ${marks.length?`<div class="card">
-    <h3>응답이 갈린 지점</h3>
-    <p class="fine" style="margin-bottom:10px">응답이 갈린 문항 조합이 검사의 어느 구간에서 나왔는지입니다. 붉은 점은 명확한 차이, 파란 점은 경미한 차이입니다. 뒤쪽에 몰려 있다면 후반으로 갈수록 응답이 흔들린 것입니다.</p>
-    ${posSvg}
-    <p class="fine" style="margin-top:6px">전반부 ${firstHalf}건 · 후반부 ${lateHalf}건</p>
-  </div>`:''}
 
   ${pairs.length?`<div class="card">
     <h3>응답이 갈린 문항</h3>
-    ${pairs.slice(0,12).map(p=>`
-      <div class="item ${p.level==='명확'?'hard':''}">
-        <div>“${p.a.q[0]}” <span class="ans">${p.a.part===1?p.a.v+' / 7':L4[p.a.v-1]}</span></div>
-        <div>“${p.b.q[0]}” <span class="ans">${p.b.part===1?p.b.v+' / 7':L4[p.b.v-1]}</span></div>
-        <div class="meta">${CL[p.cl]} · ${p.d}단계 차이 · ${p.level}</div>
+    <p class="fine" style="margin-bottom:10px">같은 개념을 다르게 물었는데 응답이 벌어진 조합입니다. 검사 I은 3단계 이상, 검사 II는 2단계 이상 벌어진 경우를 모았습니다. 총 ${pairs.length}건이며 벌어진 정도가 큰 순입니다.</p>
+    <div class="scrolllist">
+    ${pairs.map(p=>`
+      <div class="item hard">
+        <div>“${p.a.q[0]}” <span class="ans">${p.part===1?p.a.v+' / 7':L4[p.a.v-1]}</span></div>
+        <div>“${p.b.q[0]}” <span class="ans">${p.part===1?p.b.v+' / 7':L4[p.b.v-1]}</span></div>
+        <div class="meta">${CL[p.cl]} · 검사 ${p.part===1?'I':'II'} · ${p.d}단계 차이</div>
       </div>`).join('')}
-    ${pairs.length>12?`<p class="fine">이 외 ${pairs.length-12}건은 생략했습니다.</p>`:''}
+    </div>
   </div>`:`<div class="card"><h3>응답이 갈린 문항</h3>
     <p class="lead" style="margin:0">기준을 넘는 차이가 발견되지 않았습니다.</p></div>`}
 
@@ -326,6 +307,24 @@ function report(){
     <button class="btn" id="again">다시 응시</button>
     <button class="chip" id="pr" style="padding:13px 24px">리포트 인쇄 / PDF 저장</button>
   </div>`;
+
+  // 히트맵 탭과 펼치기
+  const hw=document.querySelector('.tabs');
+  if(hw){
+    hw.addEventListener('click',e=>{
+      const b=e.target.closest('.tab'); if(!b)return;
+      if(b.id==='hx'){
+        const on=b.getAttribute('aria-pressed')!=='true';
+        b.setAttribute('aria-pressed',String(on));
+        b.textContent=on?'접기':'자세히 보기';
+        document.querySelectorAll('.heat').forEach(h=>h.classList.toggle('open',on));
+        return;
+      }
+      hw.querySelectorAll('.tab:not(.expand)').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+      document.getElementById('heat1').hidden = b.dataset.h!=='1';
+      document.getElementById('heat2').hidden = b.dataset.h!=='2';
+    });
+  }
 
   document.getElementById('again').onclick=intro;
   document.getElementById('pr').onclick=()=>window.print();

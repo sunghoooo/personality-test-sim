@@ -185,19 +185,22 @@ function score(S){
   const byCl={};
   norm.forEach(r=>{(byCl[r.cl]=byCl[r.cl]||[]).push(r);});
 
-  // 모순 쌍
+  // 응답이 갈린 문항 쌍
+  //   검사 I(7점 척도)  3단계 이상 벌어지면 갈린 것으로 본다
+  //   검사 II(4단계)    2단계 이상
+  // 척도 길이가 달라 같은 "2단계"가 뜻하는 폭이 다르므로 기준을 따로 둔다.
   const pairs=[];
   Object.entries(byCl).forEach(([cl,rs])=>{
     for(let i=0;i<rs.length;i++)for(let j=i+1;j<rs.length;j++){
       if(rs[i].part!==rs[j].part) continue;
       const d=Math.abs(rs[i].step-rs[j].step);
-      const hard=rs[i].part===1?4:3, mild=rs[i].part===1?3:2;
-      if(d>=mild) pairs.push({cl,a:rs[i],b:rs[j],d,level:d>=hard?'명확':'경미'});
+      const need=rs[i].part===1?3:2;
+      if(d>=need) pairs.push({cl,a:rs[i],b:rs[j],d,part:rs[i].part});
     }
   });
-  pairs.sort((x,y)=>y.d-x.d);
-  const hardN=pairs.filter(x=>x.level==='명확').length;
-  const mildN=pairs.filter(x=>x.level==='경미').length;
+  pairs.sort((x,y)=>(y.d/(y.part===1?6:3))-(x.d/(x.part===1?6:3)));
+  const splitN=pairs.filter(p=>p.part===1).length;
+  const splitN2=pairs.filter(p=>p.part===2).length;
 
   // 응답 안정도 (클러스터 표준편차 평균)
   const sds=[];
@@ -208,12 +211,26 @@ function score(S){
   });
   const stab=sds.length?Math.max(0,Math.round(100-(sds.reduce((a,b)=>a+b,0)/sds.length)*2.2)):null;
 
-  // 영역별 응답 산포 — 같은 개념을 물은 문항들의 응답이 얼마나 모여 있는지
-  const spreadData=Object.entries(byCl).map(([cl,rs])=>{
-    const m=rs.reduce((s,r)=>s+r.n,0)/rs.length;
-    const sd=rs.length>1?Math.sqrt(rs.reduce((s,r)=>s+(r.n-m)**2,0)/(rs.length-1)):0;
-    return {cl,name:CL[cl],ax:ax(cl),mean:m,sd,points:rs.map(r=>r.n)};
-  }).sort((a,b)=>b.sd-a.sd);
+  // 응답 분포 히트맵
+  //   축(6개) 아래 영역(각 6개)마다, 응답값별로 몇 번 골랐는지를 센다.
+  //   한 칸에 몰려 있으면 그 영역에서 일관되게 답한 것이고,
+  //   여러 칸에 퍼져 있으면 문항에 따라 응답이 달라진 것이다.
+  const heat=(part)=>{
+    const max=part===1?7:4;
+    return Object.keys(AXIS).map(k=>{
+      const cls=Object.keys(CL).filter(c=>ax(c)===k).sort();
+      const rows=cls.map(cl=>{
+        const rs=(byCl[cl]||[]).filter(r=>r.part===part);
+        const counts=Array(max).fill(0);
+        rs.forEach(r=>counts[r.v-1]++);
+        return {cl,name:CL[cl],counts,n:rs.length};
+      });
+      const counts=Array(max).fill(0);
+      rows.forEach(r=>r.counts.forEach((c,i)=>counts[i]+=c));
+      return {k,name:AXIS[k],counts,n:rows.reduce((s,r)=>s+r.n,0),rows};
+    });
+  };
+  const heat1=heat(1), heat2=heat(2);
 
   // 조건부 격차 (축 단위 — 클러스터 단위는 문항이 적어 잡음이 큼)
   const byAxAll={};
@@ -258,7 +275,8 @@ function score(S){
   shaky.forEach(([cl,n])=>tips.push(`${CL[cl]} 영역에서 응답이 갈린 문항 조합이 ${n}건입니다.`));
 
 
-  return {tot,ansN,miss,hardN,mildN,pairs,stab,gapList,prof,shaky,spreadData,seq,
+  const R1=norm.filter(r=>r.part===1), R2=norm.filter(r=>r.part===2);
+  return {tot,ansN,miss,pairs,splitN,splitN2,stab,gapList,prof,shaky,heat1,heat2,seq,R1,R2,
           sdScore,atFail,atTotal:atR.length,sdCount:sdR.length,
           mid,ext,dist,ipsHit,ipsTot,elapsed:Math.round((Date.now()-S.t0)/1000)};
 }
