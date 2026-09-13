@@ -5,6 +5,8 @@
 
 const app=document.getElementById('app'), foot=document.getElementById('foot');
 let S=null, tick=null;
+// 이력 조회용 임시 인증 정보 (페이지 새로고침 시 소멸)
+let _creds=null;
 
 /* ---------- 시작 화면 ---------- */
 
@@ -37,9 +39,12 @@ function intro(){
     <p class="key">반드시 참고용으로만 사용하세요. 결과는 성격 진단이나 합격 예측이 아닙니다.</p>
     <p>결과는 실제 검사 결과와 아무런 관련이 없습니다. 여기서 응답이 많이 갈렸더라도 실제 검사에서는 그렇지 않을 수 있고, 그 반대도 마찬가지입니다.</p>
     <p>모든 문항은 자체 제작한 원본이며 실제 시험 문항이 아닙니다. 문항 분류는 성격 6요인 모델(HEXACO, Ashton &amp; Lee)의 구조를 참고했으나 공식 HEXACO-PI-R 검사와 무관하고, 문항의 신뢰도와 타당도를 통계적으로 검증하지 않았습니다.</p>
-    <p>응답은 브라우저 안에서만 처리되며 어디에도 저장되지 않습니다.</p>
+    <p>응답은 브라우저 안에서만 처리되며 어디에도 저장되지 않습니다. 결과를 남기려면 검사 후 닉네임과 PIN을 입력해 저장할 수 있습니다.</p>
   </div>
-  <button class="btn" id="go">검사 시작</button>`;
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn" id="go">검사 시작</button>
+    <button class="chip" id="hist" style="padding:13px 24px">지난 기록 보기</button>
+  </div>`;
   let mode='full';
   const desc=()=>{
     const M=MODE[mode], p1=M.sets*3+M.tail;
@@ -49,12 +54,13 @@ function intro(){
       + (mode==='quarter'?`<br><span class="fine">문항 수가 적어 영역별 응답이 3개씩만 뽑힙니다. 응답 패턴이 충분히 드러나지 않을 수 있습니다.</span>`:'');
   };
   desc();
-  app.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+  app.querySelectorAll('.chip[data-m]').forEach(c=>c.onclick=()=>{
     mode=c.dataset.m;
-    app.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===c)));
+    app.querySelectorAll('.chip[data-m]').forEach(x=>x.setAttribute('aria-pressed',String(x===c)));
     desc();
   });
   document.getElementById('go').onclick=()=>start(mode);
+  document.getElementById('hist').onclick=()=>historyLogin();
 }
 
 /* ---------- 검사 시작 ---------- */
@@ -180,74 +186,109 @@ function render(){
 }
 document.getElementById('fnext').onclick=()=>go(false);
 
-/* ---------- 리포트 ---------- */
-function report(){
-  clearInterval(tick); foot.hidden=true;
+/* ========== 리포트 데이터 구성 ========== */
 
-  const {tot,ansN,miss,pairs,splitN,splitN2,stab,gapList,prof,shaky,heat1,heat2,seq,R1,R2,
-         sdScore,atFail,atTotal,sdCount,mid,ext,dist,ipsHit,ipsTot,elapsed}=score(S);
-  const d7=dist.reduce((a,b)=>a+b,0);
+// score(S)에서 나온 결과를 직렬화 가능한 단순 객체로 변환한다.
+// 서버에 저장할 때와 리포트를 다시 그릴 때 모두 이 형태를 쓴다.
+function buildReportData(S){
+  const sc=score(S);
+  const pairs=sc.pairs.map(p=>({
+    aText:p.a.q[0], aVal:p.a.v,
+    bText:p.b.q[0], bVal:p.b.v,
+    part:p.part, cl:p.cl, d:p.d
+  }));
+  return {
+    mode:S.mode,
+    tot:sc.tot, ansN:sc.ansN, miss:sc.miss,
+    stab:sc.stab, splitN:sc.splitN, splitN2:sc.splitN2,
+    sdScore:sc.sdScore, atFail:sc.atFail, atTotal:sc.atTotal||0, sdCount:sc.sdCount||0,
+    mid:sc.mid, ext:sc.ext, dist:sc.dist,
+    prof:sc.prof, ipsHit:sc.ipsHit, ipsTot:sc.ipsTot,
+    elapsed:sc.elapsed,
+    pairs:pairs,
+    gapList:sc.gapList,
+    shaky:sc.shaky,
+    heat1:sc.heat1, heat2:sc.heat2
+  };
+}
+
+/* ========== 조언 생성 ========== */
+
+function buildTips(d){
+  const tips=[];
+  if(d.mid!=null&&d.mid>35) tips.push(`검사 I에서 중앙값 4를 ${d.mid}% 골랐습니다. 중앙에 몰리면 문항 간 차이가 줄어 같은 개념을 물었을 때의 응답 폭이 좁아집니다.`);
+  if(d.ext!=null&&d.ext<10) tips.push(`양 끝(1·7) 응답이 ${d.ext}%입니다. 확실한 문항에서도 중간값을 쓰면 응답의 방향이 흐려집니다.`);
+  if(d.miss>0) tips.push(`${d.miss}문항이 미응답으로 남았습니다. 페이지당 제한 시간 안에 다 채우지 못한 구간이 있습니다.`);
+  if(d.sdScore!=null&&d.sdScore>=62) tips.push(`"한 번도 없다" 류 문항에 동의한 정도가 ${d.sdScore}입니다. 이런 문항이 많이 섞여 있고, 여기에 높게 답할수록 나머지 응답도 후하게 매겼을 가능성이 커집니다.`);
+  if(d.atFail>0) tips.push(`사실상 성립하기 어려운 내용의 문항 ${d.atFail}개에 긍정으로 답했습니다. 문항을 끝까지 읽지 않고 넘어간 구간이 있는지 확인해 보세요.`);
+  if(d.stab!=null&&d.stab>=85&&d.sdScore!=null&&d.sdScore>=70) tips.push(`응답이 매우 일관되게 모여 있으면서 동시에 과장 응답 지표가 높습니다. 문항마다 바람직해 보이는 쪽을 고르면 일관성 자체는 높게 나오지만, 그 일관성은 실제 성향이 아니라 응답 방식에서 나온 것일 수 있습니다.`);
+  if(d.gapList&&d.gapList.length&&d.gapList[0].gap>=30) tips.push(`직접 묻는 문항과 조건이 붙은 문항의 응답 차이가 가장 큰 영역은 ${d.gapList[0].name}(${d.gapList[0].gap}점)입니다.`);
+  if(d.shaky) d.shaky.forEach(([cl,n])=>tips.push(`${CL[cl]} 영역에서 응답이 갈린 문항 조합이 ${n}건입니다.`));
+  return tips;
+}
+
+/* ========== 리포트 렌더링 (공용) ========== */
+
+// opts: { showSave:bool, backTarget:'intro'|'list' }
+function renderReport(d, opts){
+  clearInterval(tick); foot.hidden=true; window.scrollTo(0,0);
+
   const mm=s=>Math.floor(s/60)+'분 '+(s%60)+'초';
+  const modeLabel=MODE[d.mode]?MODE[d.mode].label:d.mode;
+  const dist=d.dist||[];
+  const d7=dist.reduce((a,b)=>a+b,0);
+  const tips=buildTips(d);
+  const pairs=d.pairs||[];
+  const gapList=d.gapList||[];
+  const prof=d.prof||[];
 
-  // 조언
-
-  // 응답 분포 히트맵 — 축 6개를 기본으로 보여주고, 펼치면 영역 36개까지 내려간다
-  const cell=(c,mx,max)=>{
+  // 히트맵
+  const cell=(c,mx)=>{
     const o=c===0?0:0.18+c/mx*0.72;
     return `<div class="hcell" style="background:rgba(35,64,122,${o.toFixed(2)})" title="${c}회"></div>`;
   };
   const heatTable=(data,max)=>{
+    if(!data||!data.length) return '<p class="fine">데이터 없음</p>';
     const mx=Math.max(1,...data.flatMap(g=>[...g.counts,...g.rows.flatMap(r=>r.counts)]));
     return `<div class="heat" style="--cols:${max}">
       <div class="hhead"><span></span>${Array.from({length:max},(_,i)=>`<span>${i+1}</span>`).join('')}<span></span></div>
       ${data.map(g=>`
         <div class="hrow hax"><span class="hname">${g.name}</span>
-          ${g.counts.map(c=>cell(c,mx,max)).join('')}<span class="hn">${g.n}</span></div>
+          ${g.counts.map(c=>cell(c,mx)).join('')}<span class="hn">${g.n}</span></div>
         ${g.rows.map(r=>`<div class="hrow hsub"><span class="hname">${r.name}</span>
-          ${r.counts.map(c=>cell(c,mx,max)).join('')}<span class="hn">${r.n}</span></div>`).join('')}
+          ${r.counts.map(c=>cell(c,mx)).join('')}<span class="hn">${r.n}</span></div>`).join('')}
       `).join('')}
     </div>`;
   };
-  const heatI=heatTable(heat1,7), heatII=heatTable(heat2,4);
-
-  const tips=[];
-
-  if(mid!==null&&mid>35) tips.push(`검사 I에서 중앙값 4를 ${mid}% 골랐습니다. 중앙에 몰리면 문항 간 차이가 줄어 같은 개념을 물었을 때의 응답 폭이 좁아집니다.`);
-  if(ext!==null&&ext<10) tips.push(`양 끝(1·7) 응답이 ${ext}%입니다. 확실한 문항에서도 중간값을 쓰면 응답의 방향이 흐려집니다.`);
-  if(miss>0) tips.push(`${miss}문항이 미응답으로 남았습니다. 페이지당 제한 시간 안에 다 채우지 못한 구간이 있습니다.`);
-  if(sdScore!==null&&sdScore>=62) tips.push(`"한 번도 없다" 류 문항에 동의한 정도가 ${sdScore}입니다. 이런 문항이 많이 섞여 있고, 여기에 높게 답할수록 나머지 응답도 후하게 매겼을 가능성이 커집니다.`);
-  if(atFail>0) tips.push(`사실상 성립하기 어려운 내용의 문항 ${atFail}개에 긍정으로 답했습니다. 문항을 끝까지 읽지 않고 넘어간 구간이 있는지 확인해 보세요.`);
-  if(stab!==null&&stab>=85&&sdScore!==null&&sdScore>=70) tips.push(`응답이 매우 일관되게 모여 있으면서 동시에 과장 응답 지표가 높습니다. 문항마다 바람직해 보이는 쪽을 고르면 일관성 자체는 높게 나오지만, 그 일관성은 실제 성향이 아니라 응답 방식에서 나온 것일 수 있습니다.`);
-  if(gapList.length&&gapList[0].gap>=30) tips.push(`직접 묻는 문항과 조건이 붙은 문항의 응답 차이가 가장 큰 영역은 ${gapList[0].name}(${gapList[0].gap}점)입니다.`);
-  shaky.forEach(([cl,n])=>tips.push(`${CL[cl]} 영역에서 응답이 갈린 문항 조합이 ${n}건입니다.`));
+  const heatI=heatTable(d.heat1,7), heatII=heatTable(d.heat2,4);
 
   app.innerHTML=`
-  <div class="top"><div class="t">응답 리포트</div><div class="m">${MODE[S.mode].label}</div></div>
+  <div class="top"><div class="t">응답 리포트</div><div class="m">${modeLabel}</div></div>
 
   <div class="rline">이 결과는 실제 검사 결과를 예측하지 않습니다. 응답 패턴을 확인하는 참고 자료로만 사용하세요.</div>
 
   <div class="card">
     <h3>이번 응답 요약</h3>
     <p class="lead" style="margin-bottom:14px">
-      ${tot}문항 중 ${ansN}문항 응답 · 소요 ${mm(elapsed)}<br>
+      ${d.tot}문항 중 ${d.ansN}문항 응답 · 소요 ${mm(d.elapsed)}<br>
       같은 개념을 다르게 물은 문항 조합에서 <b>응답이 갈린 경우가 ${pairs.length}건</b> 나왔습니다.
     </p>
     <div class="sum">
-      <div class="su"><div class="k">응답 안정도</div><div class="v">${stab??'—'}</div>
+      <div class="su"><div class="k">응답 안정도</div><div class="v">${d.stab??'—'}</div>
         <div class="d">같은 개념 문항끼리 응답이 얼마나 모여 있는지</div></div>
-      <div class="su"><div class="k">갈린 문항 · 검사 I</div><div class="v">${splitN}</div>
+      <div class="su"><div class="k">갈린 문항 · 검사 I</div><div class="v">${d.splitN}</div>
         <div class="d">7점 척도에서 3단계 이상 벌어진 조합</div></div>
-      <div class="su"><div class="k">갈린 문항 · 검사 II</div><div class="v">${splitN2}</div>
+      <div class="su"><div class="k">갈린 문항 · 검사 II</div><div class="v">${d.splitN2}</div>
         <div class="d">4단계 응답에서 2단계 이상 벌어진 조합</div></div>
-      <div class="su"><div class="k">미응답</div><div class="v">${miss}</div>
-        <div class="d">전체 ${tot}문항 중</div></div>
-      ${sdScore!==null?`<div class="su"><div class="k">과장 응답</div><div class="v">${sdScore}</div>
-        <div class="d">"한 번도 없다" 류 ${sdCount}문항 평균</div></div>`:''}
-      ${atTotal?`<div class="su"><div class="k">주의력 문항</div><div class="v">${atTotal-atFail}/${atTotal}</div>
+      <div class="su"><div class="k">미응답</div><div class="v">${d.miss}</div>
+        <div class="d">전체 ${d.tot}문항 중</div></div>
+      ${d.sdScore!=null?`<div class="su"><div class="k">과장 응답</div><div class="v">${d.sdScore}</div>
+        <div class="d">"한 번도 없다" 류 ${d.sdCount||''}문항 평균</div></div>`:''}
+      ${d.atTotal?`<div class="su"><div class="k">주의력 문항</div><div class="v">${d.atTotal-d.atFail}/${d.atTotal}</div>
         <div class="d">성립하기 어려운 내용에 부정으로 답한 수</div></div>`:''}
-      ${mid!==null?`<div class="su"><div class="k">중앙값 비율</div><div class="v">${mid}%</div>
+      ${d.mid!=null?`<div class="su"><div class="k">중앙값 비율</div><div class="v">${d.mid}%</div>
         <div class="d">검사 I에서 4를 고른 비율</div></div>`:''}
-      ${ipsTot?`<div class="su"><div class="k">강제선택 일치</div><div class="v">${Math.round(ipsHit/ipsTot*100)}%</div>
+      ${d.ipsTot?`<div class="su"><div class="k">강제선택 일치</div><div class="v">${Math.round(d.ipsHit/d.ipsTot*100)}%</div>
         <div class="d">척도 응답과 가깝다·멀다 선택이 맞은 세트</div></div>`:''}
     </div>
   </div>
@@ -270,8 +311,8 @@ function report(){
     <div class="scrolllist">
     ${pairs.map(p=>`
       <div class="item hard">
-        <div>“${p.a.q[0]}” <span class="ans">${p.part===1?p.a.v+' / 7':L4[p.a.v-1]}</span></div>
-        <div>“${p.b.q[0]}” <span class="ans">${p.part===1?p.b.v+' / 7':L4[p.b.v-1]}</span></div>
+        <div>"${p.aText}" <span class="ans">${p.part===1?p.aVal+' / 7':L4[p.aVal-1]}</span></div>
+        <div>"${p.bText}" <span class="ans">${p.part===1?p.bVal+' / 7':L4[p.bVal-1]}</span></div>
         <div class="meta">${CL[p.cl]} · 검사 ${p.part===1?'I':'II'} · ${p.d}단계 차이</div>
       </div>`).join('')}
     </div>
@@ -303,8 +344,26 @@ function report(){
     <div class="hist-x">${[1,2,3,4,5,6,7].map(n=>`<span>${n}</span>`).join('')}</div>
   </div>`:''}
 
+  ${opts.showSave?`
+  <div class="card" id="saveCard">
+    <h3>결과 저장</h3>
+    <p class="fine" style="margin-bottom:10px">닉네임과 PIN을 입력하면 결과를 저장하고 나중에 다시 볼 수 있습니다. 처음 저장하면 자동으로 등록됩니다.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <label class="fine" style="display:block;margin-bottom:3px">닉네임 (20자 이내)</label>
+        <input id="saveNick" type="text" maxlength="20" style="border:1.4px solid var(--rule);padding:9px 12px;font-size:14px;font-family:inherit;width:160px" placeholder="닉네임">
+      </div>
+      <div>
+        <label class="fine" style="display:block;margin-bottom:3px">PIN (4~8자리)</label>
+        <input id="savePin" type="password" maxlength="8" style="border:1.4px solid var(--rule);padding:9px 12px;font-size:14px;font-family:inherit;width:120px" placeholder="PIN">
+      </div>
+      <button class="btn" id="saveBtn" style="padding:10px 22px">저장</button>
+    </div>
+    <p class="fine" id="saveMsg" style="margin-top:8px;color:var(--stamp)"></p>
+  </div>`:''}
+
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <button class="btn" id="again">다시 응시</button>
+    <button class="btn" id="again">${opts.backTarget==='list'?'목록으로':'다시 응시'}</button>
     <button class="chip" id="pr" style="padding:13px 24px">리포트 인쇄 / PDF 저장</button>
   </div>`;
 
@@ -326,8 +385,187 @@ function report(){
     });
   }
 
-  document.getElementById('again').onclick=intro;
+  // 저장 버튼
+  if(opts.showSave){
+    const saveBtn=document.getElementById('saveBtn');
+    const saveMsg=document.getElementById('saveMsg');
+    // 이전에 이력 조회에서 인증했으면 자동 채움
+    if(_creds){
+      document.getElementById('saveNick').value=_creds.nickname;
+      document.getElementById('savePin').value=_creds.pin;
+    }
+    saveBtn.onclick=async()=>{
+      const nickname=document.getElementById('saveNick').value.trim();
+      const pin=document.getElementById('savePin').value;
+      if(!nickname||nickname.length>20){saveMsg.textContent='닉네임을 입력해 주세요 (20자 이내)';return;}
+      if(pin.length<4||pin.length>8){saveMsg.textContent='PIN은 4~8자리로 입력해 주세요';return;}
+      saveBtn.disabled=true; saveBtn.textContent='저장 중…';
+      try{
+        const result={
+          mode:d.mode, elapsed:d.elapsed, tot:d.tot, ansN:d.ansN, miss:d.miss,
+          stab:d.stab, splitN:d.splitN, splitN2:d.splitN2,
+          sdScore:d.sdScore, atFail:d.atFail, mid:d.mid, ext:d.ext,
+          dist:d.dist, prof:d.prof, ipsHit:d.ipsHit, ipsTot:d.ipsTot,
+          raw:{pairs:d.pairs, gapList:d.gapList, shaky:d.shaky, heat1:d.heat1, heat2:d.heat2, atTotal:d.atTotal, sdCount:d.sdCount}
+        };
+        const res=await API.save(nickname,pin,result);
+        if(res.error){saveMsg.textContent=res.error;saveBtn.disabled=false;saveBtn.textContent='저장';return;}
+        _creds={nickname,pin};
+        document.getElementById('saveCard').innerHTML=`
+          <h3>저장 완료</h3>
+          <p class="lead" style="margin:0">결과가 저장되었습니다. 시작 화면의 "지난 기록 보기"에서 확인할 수 있습니다.</p>`;
+      }catch(e){
+        saveMsg.textContent='서버에 연결할 수 없습니다';
+        saveBtn.disabled=false; saveBtn.textContent='저장';
+      }
+    };
+  }
+
+  // 하단 버튼
+  document.getElementById('again').onclick=()=>{
+    if(opts.backTarget==='list'&&_creds) historyList(_creds.nickname,_creds.pin);
+    else intro();
+  };
   document.getElementById('pr').onclick=()=>window.print();
+}
+
+/* ---------- 리포트 (검사 직후) ---------- */
+function report(){
+  const d=buildReportData(S);
+  renderReport(d, {showSave:true, backTarget:'intro'});
+}
+
+/* ========== 이력 조회 ========== */
+
+function historyLogin(){
+  foot.hidden=true;
+  app.innerHTML=`
+  <div class="top"><div class="t">지난 기록</div><div class="m">HISTORY</div></div>
+  <div class="card">
+    <h3>로그인</h3>
+    <p class="fine" style="margin-bottom:12px">검사 결과를 저장할 때 사용한 닉네임과 PIN을 입력하세요.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <label class="fine" style="display:block;margin-bottom:3px">닉네임</label>
+        <input id="histNick" type="text" maxlength="20" style="border:1.4px solid var(--rule);padding:9px 12px;font-size:14px;font-family:inherit;width:160px" placeholder="닉네임">
+      </div>
+      <div>
+        <label class="fine" style="display:block;margin-bottom:3px">PIN</label>
+        <input id="histPin" type="password" maxlength="8" style="border:1.4px solid var(--rule);padding:9px 12px;font-size:14px;font-family:inherit;width:120px" placeholder="PIN">
+      </div>
+      <button class="btn" id="histGo" style="padding:10px 22px">조회</button>
+    </div>
+    <p class="fine" id="histMsg" style="margin-top:8px;color:var(--stamp)"></p>
+  </div>
+  <button class="chip" id="histBack" style="padding:13px 24px">돌아가기</button>`;
+
+  if(_creds){
+    document.getElementById('histNick').value=_creds.nickname;
+    document.getElementById('histPin').value=_creds.pin;
+  }
+
+  document.getElementById('histGo').onclick=async()=>{
+    const nickname=document.getElementById('histNick').value.trim();
+    const pin=document.getElementById('histPin').value;
+    if(!nickname||!pin){document.getElementById('histMsg').textContent='닉네임과 PIN을 입력해 주세요';return;}
+    const btn=document.getElementById('histGo');
+    btn.disabled=true; btn.textContent='조회 중…';
+    try{
+      const res=await API.list(nickname,pin);
+      if(res.error){document.getElementById('histMsg').textContent=res.error;btn.disabled=false;btn.textContent='조회';return;}
+      _creds={nickname,pin};
+      const items=(res.items||[]).filter(i=>i.sk!=='PROFILE');
+      historyList(nickname,pin,items);
+    }catch(e){
+      document.getElementById('histMsg').textContent='서버에 연결할 수 없습니다';
+      btn.disabled=false; btn.textContent='조회';
+    }
+  };
+  document.getElementById('histBack').onclick=intro;
+}
+
+function historyList(nickname,pin,items){
+  foot.hidden=true;
+  const mm=s=>Math.floor(s/60)+'분 '+(s%60)+'초';
+  const fmtDate=sk=>{
+    try{
+      const d=new Date(sk);
+      return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }catch(e){return sk;}
+  };
+
+  if(!items||items.length===0){
+    app.innerHTML=`
+    <div class="top"><div class="t">지난 기록</div><div class="m">${nickname}</div></div>
+    <div class="card">
+      <p class="lead" style="margin:0">저장된 기록이 없습니다. 검사를 완료한 후 결과를 저장해 보세요.</p>
+    </div>
+    <button class="btn" id="histBack2">돌아가기</button>`;
+    document.getElementById('histBack2').onclick=intro;
+    return;
+  }
+
+  app.innerHTML=`
+  <div class="top"><div class="t">지난 기록</div><div class="m">${nickname} · ${items.length}건</div></div>
+  <p class="fine" style="margin-bottom:12px">기록을 클릭하면 상세 리포트를 볼 수 있습니다.</p>
+  ${items.map((it,idx)=>`
+    <div class="card" style="cursor:pointer;transition:border-color .15s" data-idx="${idx}"
+         onmouseover="this.style.borderColor='var(--mark)'" onmouseout="this.style.borderColor='var(--rule)'">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-weight:700;font-size:15px">${fmtDate(it.sk)}</span>
+        <span class="fine">${MODE[it.mode]?MODE[it.mode].label:it.mode}${it.elapsed?' · '+mm(it.elapsed):''}</span>
+      </div>
+      <div class="sum" style="gap:8px">
+        <div class="su" style="padding:8px"><div class="k">안정도</div><div class="v" style="font-size:18px">${it.stab??'—'}</div></div>
+        <div class="su" style="padding:8px"><div class="k">갈린 I</div><div class="v" style="font-size:18px">${it.splitN??'—'}</div></div>
+        <div class="su" style="padding:8px"><div class="k">갈린 II</div><div class="v" style="font-size:18px">${it.splitN2??'—'}</div></div>
+        <div class="su" style="padding:8px"><div class="k">미응답</div><div class="v" style="font-size:18px">${it.miss??0}</div></div>
+      </div>
+    </div>`).join('')}
+  <button class="chip" id="histBack3" style="padding:13px 24px">돌아가기</button>`;
+
+  // 카드 클릭 → 상세
+  items.forEach((it,idx)=>{
+    app.querySelector(`[data-idx="${idx}"]`).onclick=()=>historyDetail(nickname,pin,it.sk);
+  });
+  document.getElementById('histBack3').onclick=intro;
+}
+
+async function historyDetail(nickname,pin,sk){
+  app.innerHTML=`
+  <div class="top"><div class="t">기록 불러오는 중</div><div class="m">LOADING</div></div>
+  <div class="card"><p class="lead" style="margin:0">잠시만 기다려 주세요…</p></div>`;
+  try{
+    const res=await API.detail(nickname,pin,sk);
+    if(res.error){
+      app.innerHTML=`
+      <div class="top"><div class="t">오류</div><div class="m">ERROR</div></div>
+      <div class="card"><p class="lead" style="margin:0">${res.error}</p></div>
+      <button class="btn" id="errBack">돌아가기</button>`;
+      document.getElementById('errBack').onclick=()=>historyList(nickname,pin);
+      return;
+    }
+    const item=res.item;
+    const raw=item.raw||{};
+    const d={
+      mode:item.mode, tot:item.tot, ansN:item.ansN, miss:item.miss,
+      stab:item.stab, splitN:item.splitN, splitN2:item.splitN2,
+      sdScore:item.sdScore, atFail:item.atFail,
+      atTotal:raw.atTotal||0, sdCount:raw.sdCount||0,
+      mid:item.mid, ext:item.ext, dist:item.dist,
+      prof:item.prof, ipsHit:item.ipsHit, ipsTot:item.ipsTot,
+      elapsed:item.elapsed,
+      pairs:raw.pairs||[], gapList:raw.gapList||[], shaky:raw.shaky||[],
+      heat1:raw.heat1||null, heat2:raw.heat2||null
+    };
+    renderReport(d, {showSave:false, backTarget:'list'});
+  }catch(e){
+    app.innerHTML=`
+    <div class="top"><div class="t">오류</div><div class="m">ERROR</div></div>
+    <div class="card"><p class="lead" style="margin:0">서버에 연결할 수 없습니다</p></div>
+    <button class="btn" id="errBack2">돌아가기</button>`;
+    document.getElementById('errBack2').onclick=()=>historyList(nickname,pin);
+  }
 }
 
 intro();
