@@ -13,7 +13,7 @@ let _creds=null;
 function intro(){
   foot.hidden=true;
   app.innerHTML=`
-  <div class="top"><div class="t">HMAT 인성검사 연습</div><div class="m">CONSISTENCY CHECK</div></div>
+  <div class="top"><div class="t">인성검사 연습</div><div class="m">CONSISTENCY CHECK</div></div>
   <div class="card">
     <h3>이 도구가 하는 일</h3>
     <p class="lead">인성검사의 응답 형식과 시간 압박을 재현하고, 검사가 끝나면 <b>같은 내용을 다르게 물었을 때 응답이 어떻게 갈렸는지</b>를 보여줍니다. 성격을 진단하지 않고, 응답 패턴만 정리합니다.</p>
@@ -73,7 +73,7 @@ function start(mode){
 /* ---------- 페이지 이동과 시간 제한 ---------- */
 
 // 다음 버튼은 그 페이지 응답을 모두 채워야 눌린다.
-// 다만 시간이 다 되면 미응답인 채로 그냥 넘어간다. 실제 검사와 같은 방식이다.
+// 다만 시간이 다 되면 미응답인 채로 그냥 넘어간다.
 function complete(){
   const p=S.pages[S.i], a=S.ans[S.i];
   if(p.t===0) return true;
