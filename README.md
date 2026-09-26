@@ -1,6 +1,6 @@
 # 인성검사 시뮬레이터
 
-> 대기업 인성검사를 실전처럼 연습하기 위해 만든 웹앱입니다.
+> 인성검사를 실전처럼 연습하기 위해 만든 웹앱입니다.
 
 주소: https://sunghoooo.github.io/personality-test-sim
 
